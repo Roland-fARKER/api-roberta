@@ -133,8 +133,22 @@ builder.Services.AddScoped<IMovementInventoryRepository, MovementInventoryReposi
 builder.Services.AddScoped<IMovementInventoryService, MovementInventoryService>();
 
 // ===== Logs de auditoría en MongoDB =====
-builder.Services.Configure<MongoLogSettings>(
-builder.Configuration.GetSection("MongoLogSettings"));
+builder.Services.Configure<MongoLogSettings>(options =>
+{
+    builder.Configuration.GetSection("MongoLogSettings").Bind(options);
+
+    // Si no viene en MongoLogSettings:ConnectionString o tiene localhost, buscar en ConnectionStrings:MongoDbConnection
+    if (string.IsNullOrWhiteSpace(options.ConnectionString) || options.ConnectionString.Contains("localhost"))
+    {
+        var connStr = builder.Configuration.GetConnectionString("MongoDbConnection")
+                   ?? builder.Configuration["CUSTOMCONNSTR_MongoDbConnection"];
+
+        if (!string.IsNullOrWhiteSpace(connStr))
+        {
+            options.ConnectionString = connStr;
+        }
+    }
+});
 builder.Services.AddSingleton<ILogService, MongoLogService>(); 
 
 

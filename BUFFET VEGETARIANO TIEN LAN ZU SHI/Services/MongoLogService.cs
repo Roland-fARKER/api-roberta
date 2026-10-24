@@ -8,6 +8,7 @@ namespace TIEN_LAN_ZU_SHI.Services;
 public interface ILogService
 {
     Task InsertLogAsync(SystemLog log);
+    Task<List<SystemLog>> GetRecentLogsAsync(int count = 20);
 }
 
 public class MongoLogService : ILogService
@@ -18,9 +19,9 @@ public class MongoLogService : ILogService
     {
         var settings = options.Value;
 
-        // Timeout corto: si Mongo está caído no nos quedamos esperando 30 s
+        // Timeout a 15s para dar tiempo a la negociación SSL inicial en Azure
         var mongoSettings = MongoClientSettings.FromConnectionString(settings.ConnectionString);
-        mongoSettings.ServerSelectionTimeout = TimeSpan.FromSeconds(5);
+        mongoSettings.ServerSelectionTimeout = TimeSpan.FromSeconds(15);
 
         var client = new MongoClient(mongoSettings);
         var database = client.GetDatabase(settings.DatabaseName);
@@ -67,6 +68,31 @@ public class MongoLogService : ILogService
         catch (Exception ex)
         {
             Console.WriteLine($"[CRITICAL] Fallo de persistencia en MongoDB: {ex.Message}");
+        }
+    }
+
+    public async Task<List<SystemLog>> GetRecentLogsAsync(int count = 20)
+    {
+        try
+        {
+            return await _collection.Find(_ => true)
+                .SortByDescending(x => x.Timestamp)
+                .Limit(count)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Error leyendo logs de MongoDB: {ex.Message}");
+            return new List<SystemLog>
+            {
+                new SystemLog
+                {
+                    Level = "Error",
+                    Environment = $"Detalle del error en Cosmos DB: {ex.Message}",
+                    TraceId = "MONGO_QUERY_ERROR",
+                    Timestamp = DateTime.UtcNow
+                }
+            };
         }
     }
 }

@@ -52,4 +52,4 @@ jobs:
           app-name: 'api-roberta'
           slot-name: 'Production'
           package: .
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_5C4B3A61EC704095886E7786A9A76DC2 }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_3951681F060644AD815AB45202614E2F }}
